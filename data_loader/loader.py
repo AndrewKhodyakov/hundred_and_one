@@ -96,7 +96,9 @@ class Loader:
                 self._load_data()
                 self._sent_data_to_db()
                 self._complite = True
+
             except ConnectionError as con_err:
+                #here we are if script can`t got responce
                 self._logger.error('Can`t complite cycle error: {}, station: {}'.\
                         format(con_err, self))
 
@@ -129,11 +131,11 @@ class Loader:
         """
         self._logger.info('{} - start load data from source... '.format(self))
         for url in self._urls:
-            self._logger.debug('Try get data by {}...'.format(url))
+            self._logger.debug('Try get data by url {}...'.format(url))
 
             resp = requests.get(url)
 
-            #if server return not 200, we should check params
+            #if server return not 200, we can`t work, check params
             if not resp.ok:
                 raise ConnectionError(\
                     'Bad request params, check ENVs - loader {}, req - {}'.\
@@ -142,12 +144,15 @@ class Loader:
             with open(url.split('/')[-1:][0], 'wb') as output:
                 for chank in resp:
                     output.write(chank)
-                self._logger.debug('File {}, whas succesful saved'.format(output))
+                self._logger.info('File {}, was successfull saved'.format(output))
 
     def _sent_data_to_db:
         """
+        decompess and create instances
         """
-        pass
+        self._get_db_connect()
+        #TODO decompress data
+        #TODO create models and save they
 
     def __repr__(self):
         """
