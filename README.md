@@ -7,6 +7,8 @@ Test task repository consist of two parts:
             TO_DATE - last date limit (only one is requred),
             DB_URL - path to database (only one is requred)
             RETRY_TIMEOUT - retry timeout bettwen load data attempts (default=600 seconds)
+            TMP_FOLDER - folder for temporary files
+            DEBUG - more verbose regimen
 
         *create connection, to database (?create models by exists schema?)
             
@@ -31,4 +33,5 @@ Test task repository consist of two parts:
 
                 hundred_and_one - (*B.DBM, *B1.DBM)
                     REGN - ForeginKey to Organization table
+                    year_month - data for the period
                     fields according to 101 format description          
