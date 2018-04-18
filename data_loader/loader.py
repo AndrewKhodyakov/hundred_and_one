@@ -3,7 +3,7 @@
 """
 import os
 import unittest
-import logging
+import logging 
 import time
 import datetime
 import requests
@@ -75,20 +75,20 @@ class Loader:
             if day[0] == '0':
                 day = day[1]
 
-            tmp[key] = datetime.date(year=date[:4], month=month, day=day)
+            tmp[key] = datetime.date(year=int(date[:4]), month=int(month), day=int(day))
 
         delta = tmp['to'] - tmp['from']
-        last = tmp['from']
+        last = tmp['to']
         for day in range(1, delta.days + 1):
-            _ = tmp['from'] + datetime.datetime(day=day)
+            _ = tmp['from'] + datetime.timedelta(hours=24*day)
             if _.month != last.month:
-                month = last.month
+                month = str(last.month)
                 if last.month < 10:
                     month = '0' + str(last.month)
                 out.append(str(last.year) + month)
                 last = _
 
-        self._logger.debug('Perod splited at : {}'.format(out))
+        self._logger.debug('Period splited at : {}'.format(out))
         return out
 
     def run(self):
@@ -164,7 +164,7 @@ class Loader:
         """
         pretty print
         """
-        return "\n\tLoader ::url {}::db {}::folder {}::timeout {}::period {}, {}"\
+        return "\n\tLoader |url {}|db {}|folder {}|timeout {}|period {}, {}"\
             .format(self._base_url, self._db_url, self._tmp_folder, \
                 self._retry_timeout, self._period.get('from'), self._period.get('to'))
 
@@ -178,16 +178,16 @@ class TestInstances(unittest.TestCase):
         """
         os.environ['FROM_DATE'] = '20081110'
         os.environ['TO_DATE'] = '20090305'
-        os.environ['SOURSE_URL'] = 'http://test_sorce.com'
+        os.environ['SOURSE_URL'] = 'http://test_source.com'
         os.environ['DB_URL'] = 'sqlite://'
         os.environ['TMP_FOLDER'] = '../tmp'
-        os.environ['RETRY_TIMEOUT'] = 2
+        os.environ['RETRY_TIMEOUT'] = '2'
 
     def test_instance_creation(self):
         """
         """
         loader = Loader()
-        print(loader)
+        print(loader._period)
 
 if __name__ == "__main__":
     unittest.main()
