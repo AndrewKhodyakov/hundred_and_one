@@ -1,5 +1,11 @@
+"""
+    Data loader
+"""
 import os
+import unittest
 import logging
+import time
+import datetime
 import requests
 
 get_level = lambda: logging.DEBUG if os.environ.get('DEBUG') else logging.INFO
@@ -45,7 +51,7 @@ class Loader:
         if not os.path.exists(self._tmp_folder):
             raise AttributeError('TMP_FOLDER - {}, is not existst'.format(self._tmp_folder))
 
-        self._logger.info('Created : {}'.foramt(self))
+        self._logger.info('Created : {}'.format(self))
 
 
     def _check_and_split_period(self):
@@ -55,20 +61,20 @@ class Loader:
         out = []
         tmp = dict.fromkeys(self._period.keys())
         if len(set(self._period.values())) == 1:
-            raise ValueError('Dates are should`t be equal {}'.foramt(self._period))
+            raise ValueError('Dates are should`t be equal {}'.format(self._period))
 
         for key in self._period.keys():
-            data = self._period.get(key)
+            date = self._period.get(key)
             if len(date) != 8:
-                raise ValueError('Too small date value {}'.foramt(date))
+                raise ValueError('Too small date value {}'.format(date))
             month = date[4:6]
             if month[0] == '0':
                 month = month[1]
-            
             day = date[-2:]
+
             if day[0] == '0':
                 day = day[1]
-            
+
             tmp[key] = datetime.date(year=date[:4], month=month, day=day)
 
         delta = tmp['to'] - tmp['from']
@@ -82,7 +88,7 @@ class Loader:
                 out.append(str(last.year) + month)
                 last = _
 
-        self._logger.debug('Perod splited at : {}'.foramt(out))
+        self._logger.debug('Perod splited at : {}'.format(out))
         return out
 
     def run(self):
@@ -102,7 +108,7 @@ class Loader:
                 self._logger.error('Can`t complite cycle error: {}, station: {}'.\
                         format(con_err, self))
 
-            self._logger.info('Whait {} sec, and try again...'.foramt(self._retry_timeout))
+            self._logger.info('Whait {} sec, and try again...'.format(self._retry_timeout))
             time.sleep(self._retry_timeout)
 
     def _get_db_connect(self):
@@ -124,7 +130,7 @@ class Loader:
                 prefix = '01.zip'
             out.append(self._base_url + '/' + inst + prefix)
         return out
-            
+
     def _load_data(self):
         """
         load and store data in tmp volume
@@ -146,7 +152,7 @@ class Loader:
                     output.write(chank)
                 self._logger.info('File {}, was successfull saved'.format(output))
 
-    def _sent_data_to_db:
+    def _sent_data_to_db(self):
         """
         decompess and create instances
         """
@@ -158,10 +164,30 @@ class Loader:
         """
         pretty print
         """
-        return "\n\tLoader ::url {}::db ::folder {}::timeout {}::period {}, {}"\
+        return "\n\tLoader ::url {}::db {}::folder {}::timeout {}::period {}, {}"\
             .format(self._base_url, self._db_url, self._tmp_folder, \
                 self._retry_timeout, self._period.get('from'), self._period.get('to'))
 
+class TestInstances(unittest.TestCase):
+    """
+    test file instances
+    """
+    def setUp(self):
+        """
+        set up test case
+        """
+        os.environ['FROM_DATE'] = '20081110'
+        os.environ['TO_DATE'] = '20090305'
+        os.environ['SOURSE_URL'] = 'http://test_sorce.com'
+        os.environ['DB_URL'] = 'sqlite://'
+        os.environ['TMP_FOLDER'] = '../tmp'
+        os.environ['RETRY_TIMEOUT'] = 2
+
+    def test_instance_creation(self):
+        """
+        """
+        loader = Loader()
+        print(loader)
 
 if __name__ == "__main__":
-    pass
+    unittest.main()
