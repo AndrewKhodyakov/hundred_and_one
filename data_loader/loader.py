@@ -79,6 +79,7 @@ class Loader:
 
         delta = tmp['to'] - tmp['from']
         last = tmp['to']
+
         for day in range(1, delta.days + 1):
             _ = tmp['from'] + datetime.timedelta(hours=24*day)
             if _.month != last.month:
@@ -176,8 +177,6 @@ class TestInstances(unittest.TestCase):
         """
         set up test case
         """
-        os.environ['FROM_DATE'] = '20081110'
-        os.environ['TO_DATE'] = '20090305'
         os.environ['SOURSE_URL'] = 'http://test_source.com'
         os.environ['DB_URL'] = 'sqlite://'
         os.environ['TMP_FOLDER'] = '../tmp'
@@ -186,8 +185,17 @@ class TestInstances(unittest.TestCase):
     def test_instance_creation(self):
         """
         """
+        os.environ['FROM_DATE'] = '20081110'
+        os.environ['TO_DATE'] = '20090305'
         loader = Loader()
-        print(loader._period)
+        tmp  = {'from': '20081110', 'to': '20090305',\
+            'ranges': ['200903', '200811', '200812', '200901', '200902']}
+        self.assertDictEqual(tmp, loader._period)
+
+    def test_do_request_and_load_data(self):
+        """
+        """
+        pass
 
 if __name__ == "__main__":
     unittest.main()
