@@ -7,12 +7,16 @@ import logging
 import time
 import datetime
 import requests
+import responses
 
 get_level = lambda: logging.DEBUG if os.environ.get('DEBUG') else logging.INFO
 logging.basicConfig(
     format=\
         '%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S', level=get_level())
+
+zero_number_strip = lambda data: data[1] if data[0] == '0' else data
+add_zero_number = lambda data: '0' + data if int(data) < 10 else data
 
 class Loader:
     """
@@ -67,29 +71,24 @@ class Loader:
             date = self._period.get(key)
             if len(date) != 8:
                 raise ValueError('Too small date value {}'.format(date))
-            month = date[4:6]
-            if month[0] == '0':
-                month = month[1]
-            day = date[-2:]
-
-            if day[0] == '0':
-                day = day[1]
-
+            month = zero_number_strip(date[4:6])
+            day = zero_number_strip(date[-2:])
             tmp[key] = datetime.date(year=int(date[:4]), month=int(month), day=int(day))
 
-        delta = tmp['to'] - tmp['from']
-        last = tmp['to']
+        if (tmp.get('to').month == tmp.get('from').month) and \
+            (tmp.get('to').year == tmp.get('from').year):
+            out.append(str(tmp.get('to').year) + add_zero_number(str(tmp.get('to').month)))
 
-        for day in range(1, delta.days + 1):
-            _ = tmp['from'] + datetime.timedelta(hours=24*day)
-            if _.month != last.month:
-                month = str(last.month)
-                if last.month < 10:
-                    month = '0' + str(last.month)
-                out.append(str(last.year) + month)
-                last = _
-
-        self._logger.debug('Period splited at : {}'.format(out))
+        else:
+            delta = tmp['to'] - tmp['from']
+            last = tmp['to']
+            for day in range(1, delta.days + 1):
+                _ = tmp['from'] + datetime.timedelta(hours=24*day)
+                if _.month != last.month:
+                    out.append(str(last.year) + add_zero_number(str(last.month)))
+                    last = _
+    
+            self._logger.debug('Period splited at : {}'.format(out))
         return out
 
     def run(self):
@@ -125,11 +124,14 @@ class Loader:
         """
         out = []
         for inst in self._period.get('ranges'):
-            tmp = datetime.date(year=inst[:4])
+            print(inst)
+            tmp = datetime.date(year=int(inst[:4]), \
+                month=int(zero_number_strip(inst[-4:-2])),\
+                    day=int(zero_number_strip(inst[-2:])))
             prefix = '01.rar'
             if tmp.year < 2009:
                 prefix = '01.zip'
-            out.append(self._base_url + '/' + inst + prefix)
+            out.append(self._base_url + '/101-' + inst + prefix)
         return out
 
     def _load_data(self):
@@ -177,7 +179,7 @@ class TestInstances(unittest.TestCase):
         """
         set up test case
         """
-        os.environ['SOURSE_URL'] = 'http://test_source.com'
+        os.environ['SOURSE_URL'] = 'http://test_source.com/credit/forms'
         os.environ['DB_URL'] = 'sqlite://'
         os.environ['TMP_FOLDER'] = '../tmp'
         os.environ['RETRY_TIMEOUT'] = '2'
@@ -192,10 +194,17 @@ class TestInstances(unittest.TestCase):
             'ranges': ['200903', '200811', '200812', '200901', '200902']}
         self.assertDictEqual(tmp, loader._period)
 
+    @responses.activate
     def test_do_request_and_load_data(self):
         """
         """
-        pass
+        os.environ['FROM_DATE'] = '20081110'
+        os.environ['TO_DATE'] = '20081111'
+        loader = Loader()
+        responses.add(responses.GET, 'http://test_source.com/credit/forms/101-20081101.zip',\
+            body=b'asdfasdfasdfasddfasdf', status=200, \
+                content_type='application/x-zip-compressed', stream=True)
+        loader._load_data()
 
 if __name__ == "__main__":
     unittest.main()
