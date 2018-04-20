@@ -151,10 +151,17 @@ class Loader:
                     'Bad request params, check ENVs - loader {}, req - {}'.\
                         format(self, resp.text))
 
-            with open(url.split('/')[-1:][0], 'wb') as output:
+            with open(os.path.join(self._tmp_folder, url.split('/')[-1:][0]), 'wb') \
+                as output:
                 for chank in resp:
                     output.write(chank)
                 self._logger.info('File {}, was successfull saved'.format(output))
+
+    def _decompress_files(self):
+        """
+        here decompress files
+        """
+        pass
 
     def _sent_data_to_db(self):
         """
