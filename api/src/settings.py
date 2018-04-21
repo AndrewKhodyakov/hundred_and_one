@@ -1,0 +1,3 @@
+"""
+    Here settings for application
+"""
