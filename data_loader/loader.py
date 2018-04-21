@@ -7,6 +7,8 @@ import unittest
 import logging 
 import time
 import datetime
+import zipfile
+import rarfile
 import requests
 import responses
 
@@ -36,6 +38,7 @@ class Loader:
         self._db_url = os.environ.get('DB_URL', '')
         self._db = None
         self._tmp_folder = os.environ.get('TMP_FOLDER', '../tmp')
+        self._dbm_files = []
         self._retry_timeout = int(os.environ.get('RETRY_TIMEOUT', '10'))
         self._complite = False
 
@@ -151,25 +154,51 @@ class Loader:
                     'Bad request params, check ENVs - loader {}, req - {}'.\
                         format(self, resp.text))
 
-            with open(os.path.join(self._tmp_folder, url.split('/')[-1:][0]), 'wb') \
-                as output:
+            #load data from server
+            with open(os.path.join(self._tmp_folder, url.split('/')[-1:][0]), 'wb') as output:
                 for chank in resp:
                     output.write(chank)
                 self._logger.info('File {}, was successfull saved'.format(output))
 
-    def _decompress_files(self):
+
+    def _decompress_data(self):
         """
-        here decompress files
+        decompress data
         """
-        pass
+        self._logger.info('Start decomress files {} ...'.format(os.listdir(self._tmp_folder)))
+        for arch_path in os.listdir(self._tmp_folder):
+            arch_driver = None
+
+            #choose archivator
+            if 'rar' in arch_path:
+                arch_driver = rarfile.RarFile
+
+            elif 'zip' in arch_path:
+                arch_driver = zipfile.ZipFile
+
+            else:
+                raise IOError('Can`t detect archive type for {}'.format(self))
+
+            #extract file from archive
+            with arch_driver(arch_path) as archive:
+                for f_name in archive:
+                    if 'B1.DBM' in f_name:
+                        archive.extract(f_name)
+                        self._dbm_files.append(f_name)
+                        self._logger.info('File {} was extracted...'.format(f_name))
+
+            #delete usless archive
+            self._logger.debug('Delete usless archive {}...'.format(arch_path))
+            os.remove(arch_path)
+
+
 
     def _sent_data_to_db(self):
         """
-        decompess and create instances
+        create instances
         """
         self._get_db_connect()
-        #TODO decompress data
-        #TODO create models and save they
+        #TODO here read files and sent it in DB
 
     def __repr__(self):
         """
@@ -201,6 +230,7 @@ b'Rar!\x1a\x07\x00\xcf\x90s\x00\x00\r\x00\x00\x00\x00\x00\x00\x00z\xadt \x901\x0
 
     def test_instance_creation(self):
         """
+        create instance test, check periods validations
         """
         os.environ['FROM_DATE'] = '20081110'
         os.environ['TO_DATE'] = '20090305'
@@ -212,6 +242,7 @@ b'Rar!\x1a\x07\x00\xcf\x90s\x00\x00\r\x00\x00\x00\x00\x00\x00\x00z\xadt \x901\x0
     @responses.activate
     def test_do_request_and_load_data(self):
         """
+        test for requests executing, load and save data
         """
         os.environ['FROM_DATE'] = '20100501'
         os.environ['TO_DATE'] = '20100502'
@@ -220,6 +251,21 @@ b'Rar!\x1a\x07\x00\xcf\x90s\x00\x00\r\x00\x00\x00\x00\x00\x00\x00z\xadt \x901\x0
             body=self.zip_bytes_stream.readline(), status=200, \
                 content_type='application/x-zip-compressed', stream=True)
         loader._load_data()
+
+    def test_decompress_data(self):
+        """
+        test for decompress data file from archive
+        """
+        os.environ['FROM_DATE'] = '20100501'
+        os.environ['TO_DATE'] = '20100502'
+        loader = Loader()
+        with open(loader._tmp_folder + '/test_rar_archive.rar', 'wb') as rar_arch:
+            rar_arch.write(self.rar_bytes_stream)
+        loader._decompress_data()
+        print(os.listdir(loader._tmp_folder))
+
+#        with open(loader._tmp_folder + '/test_zip_archive.rar', 'wb') as rar_arch:
+#            rar_arch.write(self.rar_bytes_stream)
 
 if __name__ == "__main__":
     unittest.main()
