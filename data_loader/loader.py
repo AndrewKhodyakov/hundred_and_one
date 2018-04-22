@@ -7,10 +7,18 @@ import unittest
 import logging 
 import time
 import datetime
+from itertools import count
 import zipfile
 import rarfile
+from dbfread import DBF
 import requests
 import responses
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import (Table, Column, Numeric, Integer, String, \
+    DateTime, MetaData, ForeignKey)
+from models import OneHundredReport
 
 get_level = lambda: logging.DEBUG if os.environ.get('DEBUG') else logging.INFO
 logging.basicConfig(
@@ -36,9 +44,8 @@ class Loader:
 
         self._base_url = os.environ.get('SOURSE_URL', '')
         self._db_url = os.environ.get('DB_URL', '')
-        self._db = None
         self._tmp_folder = os.environ.get('TMP_FOLDER', '../tmp')
-        self._dbm_files = []
+        self._dbf_files = []
         self._retry_timeout = int(os.environ.get('RETRY_TIMEOUT', '10'))
         self._complite = False
 
@@ -95,6 +102,17 @@ class Loader:
             self._logger.debug('Period splited at : {}'.format(out))
         return out
 
+    @property
+    def _db(self):
+        """
+        Create db connection
+        """
+        if not self.sessionmaker:
+            self._sessionmaker = sessionmaker(bind=create_engine(self._db_url))
+
+        return self._sessionmaker.Session()
+
+
     def run(self):
         """
         run loader
@@ -115,11 +133,6 @@ class Loader:
             self._logger.info('Whait {} sec, and try again...'.format(self._retry_timeout))
             time.sleep(self._retry_timeout)
 
-    def _get_db_connect(self):
-        """
-        Create db connection
-        """
-        self._logger.info('{} - try to create connection to db... '.format(self))
 
     @property
     def _urls(self):
@@ -167,7 +180,6 @@ class Loader:
         self._logger.info('Start decomress files {} ...'.format(os.listdir(self._tmp_folder)))
         tmp = [f_name for f_name in  os.listdir(self._tmp_folder) \
             if 'zip' in f_name or 'rar' in f_name]
-        print(tmp)
         for arch_path in tmp:
             arch_driver = None
 
@@ -178,15 +190,12 @@ class Loader:
             elif 'zip' in arch_path:
                 arch_driver = zipfile.ZipFile
 
-#            else:
-#                raise IOError('Can`t detect archive type for {}'.format(self))
-
             #extract file from archive
             with arch_driver(self._tmp_folder + '/' + arch_path) as archive:
                 for f_name in archive.namelist():
                     if 'B1.DBF' in f_name:
                         archive.extract(f_name, path=self._tmp_folder)
-                        self._dbm_files.append(f_name)
+                        self._dbf_files.append(f_name)
                         self._logger.info('File {} was extracted...'.format(f_name))
 
             #delete usless archive
@@ -197,10 +206,19 @@ class Loader:
 
     def _sent_data_to_db(self):
         """
-        create instances
+        create instance and store at database
         """
-        self._get_db_connect()
-        #TODO here read files and sent it in DB
+        for path_to_dbf in self._dbf_files:
+            with DBF(self._tmp_folder + '/' + path_to_dbf, encoding='cp866') as table:
+                counter = count()
+                tmp = []
+                for data in table:
+                    tmp.append(OneHundredReport(**data))
+                    if next(counter) == 1000:
+                        self._db.balk_save(tmp)
+                        counter = count()
+                        tmp = []
+                        
 
     def __repr__(self):
         """
@@ -219,7 +237,7 @@ class TestInstances(unittest.TestCase):
         set up test case
         """
         os.environ['SOURSE_URL'] = 'http://test_source.com/credit/forms'
-        os.environ['DB_URL'] = 'sqlite://'
+        os.environ['DB_URL'] = 'sqlite:///:memory:'
         os.environ['TMP_FOLDER'] = '../tmp'
         os.environ['RETRY_TIMEOUT'] = '2'
         self.rar_bytes_stream = BytesIO(\
@@ -266,6 +284,44 @@ b'Rar!\x1a\x07\x00\xcf\x90s\x00\x00\r\x00\x00\x00\x00\x00\x00\x00z\xadt \x901\x0
 
         for inst in os.listdir(loader._tmp_folder + '/test'):
             os.remove(loader._tmp_folder + '/test/' + inst)
+
+    def test_read_dbf_and_store_to_db(self):
+        """
+        test read dbf and store data to db
+        """
+        #create test database in memory
+        metadata = MetaData()
+        one_hundred_report_table = Table('one_hundred_report', metadata,
+            Column('p_k', Integer, primary_key=True),
+            Column('regn', Integer),
+            Column('plan', String(length=1)),
+            Column('num_sc', String(length=10)),
+            Column('a_p', String(length=1)),
+            Column('vr', Numeric),
+            Column('vv', Numeric),
+            Column('vitg', Numeric),
+            Column('ora', Numeric),
+            Column('ova', Numeric),
+            Column('oitga', Numeric),
+            Column('orp', Numeric),
+            Column('ir', Numeric),
+            Column('iv', Numeric),
+            Column('iitg', Integer),
+            Column('dt', DateTime),
+            Column('priz', Integer),
+        )
+        metadata.create_all(create_engine(os.environ.get('DB_URL')))
+
+        #test read dbm file and save data in database
+        os.environ['FROM_DATE'] = '20100501'
+        os.environ['TO_DATE'] = '20100502'
+        loader = Loader()
+        with open(loader._tmp_folder + '/test_rar_archive.rar', 'wb') as rar_arch:
+            for chank in self.rar_bytes_stream:
+                rar_arch.write(chank)
+        loader._decompress_data()
+        loader._sent_data_to_db()
+
 
 if __name__ == "__main__":
     unittest.main()
