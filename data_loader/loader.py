@@ -44,6 +44,8 @@ class Loader:
 
         self._base_url = os.environ.get('SOURSE_URL', '')
         self._db_url = os.environ.get('DB_URL', '')
+        self._sessionmaker = None
+        self._session = None
         self._tmp_folder = os.environ.get('TMP_FOLDER', '../tmp')
         self._dbf_files = []
         self._retry_timeout = int(os.environ.get('RETRY_TIMEOUT', '10'))
@@ -107,42 +109,55 @@ class Loader:
         """
         Create db connection
         """
-        if not self.sessionmaker:
+        if not self._sessionmaker:
             self._sessionmaker = sessionmaker(bind=create_engine(self._db_url))
+            self._session = self._sessionmaker()
 
-        return self._sessionmaker.Session()
+        return self._session
 
 
     def run(self):
         """
         run loader
         """
-        while not self._complite:
+        #if we has no data from this period do all actions
+        if self._count() == 0:
 
-            try:
-                #try do all actions
-                self._load_data()
-                self._sent_data_to_db()
-                self._complite = True
+            while not self._complite:
+    
+                try:
+                    #try do all actions
+                    self._load_data()
+                    self._sent_data_to_db()
+                    self._complite = True
+    
+                except ConnectionError as con_err:
+                    #here we are if script can`t got responce
+                    self._logger.error('Can`t complite cycle error: {}, station: {}'.\
+                            format(con_err, self))
+    
+                self._logger.info('Whait {} sec, and try again...'.format(self._retry_timeout))
+                time.sleep(self._retry_timeout)
 
-            except ConnectionError as con_err:
-                #here we are if script can`t got responce
-                self._logger.error('Can`t complite cycle error: {}, station: {}'.\
-                        format(con_err, self))
-
-            self._logger.info('Whait {} sec, and try again...'.format(self._retry_timeout))
-            time.sleep(self._retry_timeout)
-
-    def _exists(self):
+    def _count(self):
         """
         Check is data for period is already exists in db
         """
-        self.loader.info('Check data for period from {} to {} in db: {}'.\
+        self._logger.info('Check data for period from {} to {} in db: {}'.\
             format(self._period.get('from'), self._period.get('to'), self._db_url))
-        _from = None
-        _to = None
-        self._db.query(OneHundredReport).filter_by(DT>=_from and )
-        #TODO write here
+
+        month = zero_number_strip(self._period.get('from')[4:6])
+        day = zero_number_strip(self._period.get('from')[-2:])
+        _from = datetime.date(\
+            year=int(self._period.get('from')[:4]), month=int(month), day=int(day))
+
+        month = zero_number_strip(self._period.get('to')[4:6])
+        day = zero_number_strip(self._period.get('to')[-2:])
+        _to = datetime.date(\
+            year=int(self._period.get('to')[:4]), month=int(month), day=int(day))
+
+        return self._db.query(OneHundredReport).filter(\
+            OneHundredReport.DT>=_from, OneHundredReport.DT <=_to).count()
 
     @property
     def _urls(self):
@@ -223,11 +238,17 @@ class Loader:
                 counter = count()
                 tmp = []
                 for data in table:
-                    tmp.append(OneHundredReport(**data))
-                    if next(counter) == 1000:
-                        self._db.balk_save(tmp)
-                        counter = count()
-                        tmp = []
+                    data = dict(data)
+                    #save only data with REGN and DT
+                    if data.get('REGN') and data.get('DT'):
+                        tmp.append(OneHundredReport(**data))
+                        if next(counter) == 1000:
+                            self._db.bulk_save_objects(tmp)
+                            counter = count()
+                            tmp = []
+
+                if tmp:
+                    self._db.bulk_save_objects(tmp)
                         
 
     def __repr__(self):
@@ -247,7 +268,7 @@ class TestInstances(unittest.TestCase):
         set up test case
         """
         os.environ['SOURSE_URL'] = 'http://test_source.com/credit/forms'
-        os.environ['DB_URL'] = 'sqlite:///:memory:'
+        os.environ['DB_URL'] = 'sqlite://'
         os.environ['TMP_FOLDER'] = '../tmp'
         os.environ['RETRY_TIMEOUT'] = '2'
         self.rar_bytes_stream = BytesIO(\
@@ -299,38 +320,44 @@ b'Rar!\x1a\x07\x00\xcf\x90s\x00\x00\r\x00\x00\x00\x00\x00\x00\x00z\xadt \x901\x0
         """
         test read dbf and store data to db
         """
-        #create test database in memory
-        metadata = MetaData()
-        one_hundred_report_table = Table('one_hundred_report', metadata,
-            Column('p_k', Integer, primary_key=True),
-            Column('regn', Integer),
-            Column('plan', String(length=1)),
-            Column('num_sc', String(length=10)),
-            Column('a_p', String(length=1)),
-            Column('vr', Numeric),
-            Column('vv', Numeric),
-            Column('vitg', Numeric),
-            Column('ora', Numeric),
-            Column('ova', Numeric),
-            Column('oitga', Numeric),
-            Column('orp', Numeric),
-            Column('ir', Numeric),
-            Column('iv', Numeric),
-            Column('iitg', Integer),
-            Column('dt', DateTime),
-            Column('priz', Integer),
-        )
-        metadata.create_all(create_engine(os.environ.get('DB_URL')))
-
-        #test read dbm file and save data in database
+        #create instance and call _db method for create connection
         os.environ['FROM_DATE'] = '20100501'
         os.environ['TO_DATE'] = '20100502'
         loader = Loader()
+        loader._db
+
+        #create test database in memory
+        metadata = MetaData()
+        one_hundred_report_table = Table('one_hundred_report', metadata,
+            Column('P_K', Integer, primary_key=True),
+            Column('REGN', Integer),
+            Column('PLAN', String(length=1)),
+            Column('NUM_SC', String(length=10)),
+            Column('A_P', String(length=1)),
+            Column('VR', Numeric),
+            Column('VV', Numeric),
+            Column('VITG', Numeric),
+            Column('ORA', Numeric),
+            Column('OVA', Numeric),
+            Column('OITGA', Numeric),
+            Column('ORP', Numeric),
+            Column('OVP', Numeric),
+            Column('OITGP', Numeric),
+            Column('IR', Numeric),
+            Column('IV', Numeric),
+            Column('IITG', Integer),
+            Column('DT', DateTime),
+            Column('PRIZ', Integer),
+        )
+        metadata.create_all(loader._sessionmaker.__dict__.get('kw').get('bind'))
+
+        #test read dbm file and save data in database
         with open(loader._tmp_folder + '/test_rar_archive.rar', 'wb') as rar_arch:
             for chank in self.rar_bytes_stream:
                 rar_arch.write(chank)
         loader._decompress_data()
         loader._sent_data_to_db()
+        self.assertTrue(loader._count() != 0)
 
 
 if __name__ == "__main__":
