@@ -36,4 +36,4 @@ class OneHundredReport(Base):
         """
         pretty print
         """
-        return str(self.p_k) + '_' + str(self.regn) + '_' + str(self.dt)
+        return str(self.P_K) + '_' + str(self.REGN) + '_' + str(self.DT)

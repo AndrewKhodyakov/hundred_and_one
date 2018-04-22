@@ -25,25 +25,32 @@ class APITestCase(unittest.TestCase):
         #create test database in memory
         metadata = MetaData()
         one_hundred_report_table = Table('one_hundred_report', metadata,
-            Column('p_k', Integer, primary_key=True),
-            Column('regn', Integer),
-            Column('plan', String(length=1)),
-            Column('num_sc', String(length=10)),
-            Column('a_p', String(length=1)),
-            Column('vr', Numeric),
-            Column('vv', Numeric),
-            Column('vitg', Numeric),
-            Column('ora', Numeric),
-            Column('ova', Numeric),
-            Column('oitga', Numeric),
-            Column('orp', Numeric),
-            Column('ir', Numeric),
-            Column('iv', Numeric),
-            Column('iitg', Integer),
-            Column('dt', DateTime),
-            Column('priz', Integer),
+            Column('P_K', Integer, primary_key=True),
+            Column('REGN', Integer),
+            Column('PLAN', String(length=1)),
+            Column('NUM_SC', String(length=10)),
+            Column('A_P', String(length=1)),
+            Column('VR', Numeric),
+            Column('VV', Numeric),
+            Column('VITG', Numeric),
+            Column('ORA', Numeric),
+            Column('OVA', Numeric),
+            Column('OITGA', Numeric),
+            Column('ORP', Numeric),
+            Column('OVP', Numeric),
+            Column('OITGP', Numeric),
+            Column('IR', Numeric),
+            Column('IV', Numeric),
+            Column('IITG', Integer),
+            Column('DT', DateTime),
+            Column('PRIZ', Integer),
         )
         metadata.create_all(ENGINE)
+
+        self._data = {'REGN': 1, 'PLAN': 'А', 'NUM_SC': '10207', 'A_P': '2',\
+            'VR': 23064358, 'VV': 0, 'VITG': 23064358.0, 'ORA': 0, 'OVA': 0, 'OITGA': 0.0,\
+            'ORP': 0, 'OVP': 0, 'OITGP': 0.0, 'IR': 23064358, 'IV': 0, 'IITG': 23064358.0,\
+            'DT': datetime.date(2010, 5, 1), 'PRIZ': 1}
 
     def test_a_models(self):
         """
