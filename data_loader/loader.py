@@ -133,6 +133,16 @@ class Loader:
             self._logger.info('Whait {} sec, and try again...'.format(self._retry_timeout))
             time.sleep(self._retry_timeout)
 
+    def _exists(self):
+        """
+        Check is data for period is already exists in db
+        """
+        self.loader.info('Check data for period from {} to {} in db: {}'.\
+            format(self._period.get('from'), self._period.get('to'), self._db_url))
+        _from = None
+        _to = None
+        self._db.query(OneHundredReport).filter_by(DT>=_from and )
+        #TODO write here
 
     @property
     def _urls(self):
