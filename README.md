@@ -25,13 +25,7 @@ Test task repository consist of two parts:
             DB_URL - path to database
 
             DB_SCHEMA:
-                Organizations - ( *N.DBM, *N1.DBM files)
-                    REGN - registration number
-                    NAME_B - full name
-                    CAT_FLAG - flag of category
-                    DURATION_FLAG - flag of reporting period
-
-                hundred_and_one - (*B.DBM, *B1.DBM)
+                hundred_and_one - (*B1.DBF)
                     REGN - ForeginKey to Organization table
                     year_month - data for the period
                     fields according to 101 format description          
