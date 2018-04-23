@@ -1,8 +1,8 @@
-FROM pypy:3-5.10-slim
+FROM python:3.6-slim
 ARG BASE_DIR
 
 RUN apt-get -y update
-RUN apt-get -y install build-essential libpq-dev
+RUN apt-get -y install build-essential libpq-dev unrar-free
 
 WORKDIR $BASE_DIR/
 RUN mkdir ./tmp

@@ -3,7 +3,8 @@ import json
 import logging
 import unittest
 import datetime
-from sqlalchemy import (Table, Column, Numeric, Integer, String, DateTime, MetaData, ForeignKey)
+from sqlalchemy import (Table, Column, Integer, BigInteger,
+    String, DateTime, MetaData, ForeignKey)
 
 from settings import ENGINE, DB
 from app import app
@@ -34,18 +35,18 @@ class APITestCase(unittest.TestCase):
             Column('PLAN', String(length=1)),
             Column('NUM_SC', String(length=10)),
             Column('A_P', String(length=1)),
-            Column('VR', Numeric),
-            Column('VV', Numeric),
-            Column('VITG', Numeric),
-            Column('ORA', Numeric),
-            Column('OVA', Numeric),
-            Column('OITGA', Numeric),
-            Column('ORP', Numeric),
-            Column('OVP', Numeric),
-            Column('OITGP', Numeric),
-            Column('IR', Numeric),
-            Column('IV', Numeric),
-            Column('IITG', Integer),
+            Column('VR', BigInteger),
+            Column('VV', BigInteger),
+            Column('VITG', BigInteger),
+            Column('ORA', BigInteger),
+            Column('OVA', BigInteger),
+            Column('OITGA', BigInteger),
+            Column('ORP', BigInteger),
+            Column('OVP', BigInteger),
+            Column('OITGP', BigInteger),
+            Column('IR', BigInteger),
+            Column('IV', BigInteger),
+            Column('IITG', BigInteger),
             Column('DT', DateTime),
             Column('PRIZ', Integer),
         )

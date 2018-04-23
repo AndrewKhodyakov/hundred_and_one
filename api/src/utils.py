@@ -1,12 +1,14 @@
 """
     Here usefull utils
 """
+import os
 from decimal import Decimal
 import datetime
 import logging
-from sqlalchemy import (Table, Column, Numeric, Integer, String, \
+from sqlalchemy import create_engine
+from sqlalchemy import (Table, Column, Integer, BigInteger, String, \
     DateTime, MetaData, ForeignKey)
-from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy_utils import database_exists, create_database, drop_database
 
 def model_to_dict(model):
     """
@@ -22,17 +24,22 @@ def model_to_dict(model):
                 out[key] = float(model.__dict__.get(key))
     return out
         
-def check_datebase_initialization(engine, log_level):
+def check_datebase_initialization():
     """
     check is database is exists if not - create it
-    engine: data base connacions engine
-    log_level: logs level
     """
+    engine = create_engine(os.environ.get('DB_URL', 'sqlite:///:memory:'))
+    LOG_LEVEL = logging.DEBUG if os.environ.get('DEBUG')\
+        else logging.INFO
     logging.basicConfig(
         format=\
             '%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S', level=log_level)
+        datefmt='%Y-%m-%d %H:%M:%S', level=LOG_LEVEL)
     logger = logging.getLogger('Db initializer')
+
+    if os.environ.get('DROP_DB'):
+        logger.info('Drop DB ENV detected, drop db...')
+        drop_database(engine.url)
 
     logger.info('Check database...')
     if not database_exists(engine.url):
@@ -46,18 +53,18 @@ def check_datebase_initialization(engine, log_level):
             Column('PLAN', String(length=1)),
             Column('NUM_SC', String(length=10)),
             Column('A_P', String(length=1)),
-            Column('VR', Numeric),
-            Column('VV', Numeric),
-            Column('VITG', Numeric),
-            Column('ORA', Numeric),
-            Column('OVA', Numeric),
-            Column('OITGA', Numeric),
-            Column('ORP', Numeric),
-            Column('OVP', Numeric),
-            Column('OITGP', Numeric),
-            Column('IR', Numeric),
-            Column('IV', Numeric),
-            Column('IITG', Integer),
+            Column('VR', BigInteger),
+            Column('VV', BigInteger),
+            Column('VITG', BigInteger),
+            Column('ORA', BigInteger),
+            Column('OVA', BigInteger),
+            Column('OITGA', BigInteger),
+            Column('ORP', BigInteger),
+            Column('OVP', BigInteger),
+            Column('OITGP', BigInteger),
+            Column('IR', BigInteger),
+            Column('IV', BigInteger),
+            Column('IITG', BigInteger),
             Column('DT', DateTime),
             Column('PRIZ', Integer),
         )

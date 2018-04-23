@@ -7,6 +7,7 @@ cd $BASE_DIR
 
 if [ $1 = 'up' ] ; then
     #here database initialization
+    python -c "from utils import check_datebase_initialization; check_datebase_initialization()"
     $START_PROD_SERVER
 else
     echo 'Set start mode in $1!'
