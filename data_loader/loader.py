@@ -8,6 +8,7 @@ import logging
 import time
 import datetime
 from itertools import count
+import argparse
 import zipfile
 import rarfile
 from dbfread import DBF
@@ -16,7 +17,7 @@ import responses
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import (Table, Column, Numeric, Integer, String, \
+from sqlalchemy import (Table, Column, Integer, BigInteger, String, \
     DateTime, MetaData, ForeignKey)
 from models import OneHundredReport
 
@@ -128,6 +129,7 @@ class Loader:
                 try:
                     #try do all actions
                     self._load_data()
+                    self._decompress_data()
                     self._sent_data_to_db()
                     self._complite = True
     
@@ -217,6 +219,8 @@ class Loader:
 
             #extract file from archive
             with arch_driver(self._tmp_folder + '/' + arch_path) as archive:
+                self._logger.info('Archive {} - contain files {}...'.\
+                    format(archive, archive.namelist()))
                 for f_name in archive.namelist():
                     if 'B1.DBF' in f_name:
                         archive.extract(f_name, path=self._tmp_folder)
@@ -233,6 +237,7 @@ class Loader:
         """
         create instance and store at database
         """
+        self._logger.info('Start sent data from files {} to db...'.format(self._dbf_files))
         for path_to_dbf in self._dbf_files:
             with DBF(self._tmp_folder + '/' + path_to_dbf, encoding='cp866') as table:
                 counter = count()
@@ -243,12 +248,16 @@ class Loader:
                     if data.get('REGN') and data.get('DT'):
                         tmp.append(OneHundredReport(**data))
                         if next(counter) == 1000:
+                            self._logger.debug('Got {} instances'.format(tmp))
                             self._db.bulk_save_objects(tmp)
+                            self._db.commit()
                             counter = count()
                             tmp = []
 
                 if tmp:
+                    self._logger.debug('Got {} instances'.format(tmp))
                     self._db.bulk_save_objects(tmp)
+                    self._db.commit()
                         
 
     def __repr__(self):
@@ -334,18 +343,18 @@ b'Rar!\x1a\x07\x00\xcf\x90s\x00\x00\r\x00\x00\x00\x00\x00\x00\x00z\xadt \x901\x0
             Column('PLAN', String(length=1)),
             Column('NUM_SC', String(length=10)),
             Column('A_P', String(length=1)),
-            Column('VR', Numeric),
-            Column('VV', Numeric),
-            Column('VITG', Numeric),
-            Column('ORA', Numeric),
-            Column('OVA', Numeric),
-            Column('OITGA', Numeric),
-            Column('ORP', Numeric),
-            Column('OVP', Numeric),
-            Column('OITGP', Numeric),
-            Column('IR', Numeric),
-            Column('IV', Numeric),
-            Column('IITG', Integer),
+            Column('VR', BigInteger),
+            Column('VV', BigInteger),
+            Column('VITG', BigInteger),
+            Column('ORA', BigInteger),
+            Column('OVA', BigInteger),
+            Column('OITGA', BigInteger),
+            Column('ORP', BigInteger),
+            Column('OVP', BigInteger),
+            Column('OITGP', BigInteger),
+            Column('IR', BigInteger),
+            Column('IV', BigInteger),
+            Column('IITG', BigInteger),
             Column('DT', DateTime),
             Column('PRIZ', Integer),
         )
@@ -361,4 +370,26 @@ b'Rar!\x1a\x07\x00\xcf\x90s\x00\x00\r\x00\x00\x00\x00\x00\x00\x00z\xadt \x901\x0
 
 
 if __name__ == "__main__":
-    unittest.main()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('mode', \
+        help='Set mode "tests" - to run unittests or "run" for start loading.\n' + \
+            'NOTE: for successfull running you should export all requred ENVs: \n' + \
+            '\t FROM_DATE, TO_DATE, TMP_FOLDER, SOURSE_URL, DB_URL',\
+            default='')
+
+    args = parser.parse_args()
+    #unittests mode
+    if args.mode == 'tests':
+        suite = unittest.TestSuite()
+        suite.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(TestInstances))
+        unittest.TextTestRunner().run(suite)
+
+    #run mode
+    elif args.mode == 'run':
+        loader = Loader()
+        loader.run()
+
+    #print help
+    else:
+        parser.print_help()

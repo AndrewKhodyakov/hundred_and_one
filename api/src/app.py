@@ -17,5 +17,7 @@ def one_hundred_report(regn):
     """
     Get data about organization one_hundred_report through it REGN
     """
-    return jsonify([model_to_dict(inst) for inst in \
-        app.db.query(OneHundredReport).filter(OneHundredReport.REGN == regn)])
+    app.logger.debug('GET REGN: {}'.format(regn))
+    resp = [model_to_dict(inst) for inst in \
+        app.db.query(OneHundredReport).filter(OneHundredReport.REGN == regn)]
+    return jsonify(resp)

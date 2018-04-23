@@ -1,0 +1,56 @@
+version: '2'
+services:
+
+    postgres:
+        build: ./postgres
+        volumes:
+            - ./var:/var/lib/postgresql
+        ports:
+            - 5432:5432
+
+    loader:
+        build:
+            context: ./data_loader
+            args:
+                BASE_DIR: /opt/data_loader
+
+        environment:
+            - BASE_DIR=/opt/data_loader
+            - FROM_DATE=20100110
+            - TO_DATE=20100111
+            - DB_URL=postgresql+psycopg2://postgres@postgres/credit_db
+            - SOURSE_URL=https://www.cbr.ru/credit/forms
+            - TMP_FOLDER=./tmp
+            - RETRY_TIMEOUT=60
+            - DEBUG=True
+
+        command: 'load'
+        volumes:
+            - ./tmp:/opt/data_loader/tmp
+        depends_on:
+            - postgres
+        links:
+            - postgres
+
+    api:
+        build:
+            context: ./api
+            args:
+                BASE_DIR: /opt/api
+        environment:
+            - BASE_DIR=/opt/api
+            - DEBUG=True
+            - DB_URL=postgresql+psycopg2://postgres@postgres/credit_db
+            - HOST_IP=0.0.0.0
+            - SERVER_PORT=8000
+            - WORKER_COUNT=2
+            - REQ_TIMEOUT=120
+            - DROP_DB=
+
+        command: 'up'
+        ports:
+            - 8000:8000
+        depends_on:
+            - postgres
+        links:
+            - postgres
