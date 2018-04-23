@@ -8,6 +8,7 @@ import logging
 import time
 import datetime
 from itertools import count
+import argparse
 import zipfile
 import rarfile
 from dbfread import DBF
@@ -361,4 +362,24 @@ b'Rar!\x1a\x07\x00\xcf\x90s\x00\x00\r\x00\x00\x00\x00\x00\x00\x00z\xadt \x901\x0
 
 
 if __name__ == "__main__":
-    unittest.main()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('mode', \
+        help='Set mode "tests" - to run unittests or "run" for start loading.',\
+            default='')
+
+    args = parser.parse_args()
+    #unittests mode
+    if args.mode == 'tests':
+        suite = unittest.TestSuite()
+        suite.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(TestInstances))
+        unittest.TextTestRunner().run(suite)
+
+    #run mode
+    elif args.mode == 'run':
+        loader = Loader()
+        loader.run()
+
+    #print help
+    else:
+        parser.print_help()
