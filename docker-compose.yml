@@ -1,0 +1,47 @@
+version: '2'
+services:
+
+    postgres:
+        build: ./postgres
+        volumes:
+            - ./var:/var/lib/postgresql
+
+    loader:
+        build:
+            context: ./data_loader
+            args:
+                BASE_DIR: /opt/nlp_drugstore
+
+        environment:
+            - FROM_DATE=20100112
+            - TO_DATE=20100212
+            - DB_URL=
+            - SOURSE_URL=https://www.cbr.ru/credit/forms
+            - TMP_FOLDER=./tmp
+            - RETRY_TIMEOUT=60
+            - DEBUG=True
+
+        command: 'load'
+        volumes:
+            - ./tmp:/opt/data_loader/tmp
+        depends_on:
+            - postgres
+        links:
+            - postgres
+
+    api:
+        build:
+            context: ./api
+            args:
+                BASE_DIR: /opt/api
+        environment:
+            - DEBUG=True
+            - DB_URL=
+
+        command: 'up'
+        ports:
+            - 5000:5000
+        depends_on:
+            - postgres
+        links:
+            - postgres
