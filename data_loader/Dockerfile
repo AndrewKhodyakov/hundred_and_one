@@ -3,6 +3,7 @@ ARG BASE_DIR
 
 RUN apt-get -y update
 RUN apt-get -y install build-essential libpq-dev
+
 WORKDIR $BASE_DIR/
 RUN mkdir ./tmp
 

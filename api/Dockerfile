@@ -1,8 +1,8 @@
 FROM pypy:3-5.10-slim
 ARG BASE_DIR
 
-RUN apk update
-RUN apk add --no-cache postgresql-dev build-base
+RUN apt-get -y update
+RUN apt-get -y install build-essential libpq-dev
 
 WORKDIR $BASE_DIR/
 
@@ -12,5 +12,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src .
 COPY docker-entrypoint.sh .
 RUN chmod +x ./docker-entrypoint.sh
+RUN apt-get purge -y build-essential
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
