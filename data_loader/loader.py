@@ -365,7 +365,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', \
-        help='Set mode "tests" - to run unittests or "run" for start loading.',\
+        help='Set mode "tests" - to run unittests or "run" for start loading.\n' + \
+            'NOTE: for successfull running you should export all requred ENVs: \n' + \
+            '\t FROM_DATE, TO_DATE, TMP_FOLDER, SOURSE_URL, DB_URL',\
             default='')
 
     args = parser.parse_args()
