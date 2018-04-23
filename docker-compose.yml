@@ -35,8 +35,13 @@ services:
             args:
                 BASE_DIR: /opt/api
         environment:
+            - BASE_DIR=/opt/api
             - DEBUG=True
-            - DB_URL=
+            - DB_URL=postgresql+psycopg2://postgres:postgres@postgres/credit_db
+            - HOST_IP=0.0.0.0
+            - SERVER_PORT=8000
+            - WORKER_COUNT=2
+            - REQ_TIMEOUT=120
 
         command: 'up'
         ports:
