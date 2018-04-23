@@ -1,4 +1,4 @@
-FROM pypy:3-5.10-slim
+FROM python:3.6-slim
 ARG BASE_DIR
 
 RUN apt-get -y update

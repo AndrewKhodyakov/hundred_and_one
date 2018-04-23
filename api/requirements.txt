@@ -1,4 +1,5 @@
 flask
 sqlalchemy
+sqlalchemy-utils
 psycopg2
 gunicorn
