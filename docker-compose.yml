@@ -10,10 +10,11 @@ services:
         build:
             context: ./data_loader
             args:
-                BASE_DIR: /opt/nlp_drugstore
+                BASE_DIR: /opt/data_loader
 
         environment:
-            - FROM_DATE=20100112
+            - BASE_DIR=/opt/data_loader
+            - FROM_DATE=
             - TO_DATE=20100212
             - DB_URL=
             - SOURSE_URL=https://www.cbr.ru/credit/forms
