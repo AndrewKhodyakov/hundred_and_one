@@ -1,13 +1,10 @@
 #!/bin/sh
 
-#start command
-START_PROD_SERVER="gunicorn --bind=$HOST_IP:$SERVER_PORT --workers=$WORKER_COUNT --timeout=$REQ_TIMEOUT app:app"
-
 cd $BASE_DIR
 
-if [ $1 = 'up' ] ; then
-    #here database initialization
-    $START_PROD_SERVER
+if [ $1 = 'load' ] ; then
+    echo 'Start loading...'
+    pypy3 loader.py
 else
     echo 'Set start mode in $1!'
     exit 1
